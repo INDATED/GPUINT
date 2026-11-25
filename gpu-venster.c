@@ -349,7 +349,7 @@ static void gpu_paneel(const Gpu *q, int nr, float x, float y, float b)
     mini(ix, ry, mb, T("BELASTING", "LOAD"), q->util < 0 ? "-" : nl("%.0f", q->util), "%", q->util / 100, GROEN);
     mini(ix + mb + 10 * D, ry, mb, T("TEMPERATUUR", "TEMPERATURE"), q->temp < 0 ? "-" : nl("%.0f", q->temp), q->temp < 0 ? "" : "\xC2\xB0""C",
          q->temp / 100, kleur_bij(q->temp, 75, 87));
-    mini(ix + 2 * (mb + 10 * D), ry, mb, T("VERMOGEN", "POWER"), q->w < 0 ? "-" : nl("%.1f", q->w),
+    mini(ix + 2 * (mb + 10 * D), ry, mb, q->w_chip ? T("VERMOGEN CHIP", "CHIP POWER") : T("VERMOGEN", "POWER"), q->w < 0 ? "-" : nl("%.1f", q->w),
          q->w < 0 ? "" : q->w_max > 0 ? nl("/ %.0f W", q->w_max) : "W", q->w_max > 0 ? q->w / q->w_max : 0, HEMEL);
 
     /* videogeheugen: een balk in stukken per soort proces */
@@ -389,12 +389,16 @@ static void gpu_paneel(const Gpu *q, int nr, float x, float y, float b)
     } else {
         n = 0; t[0] = 0;
         if (q->pstate >= 0) n += snprintf(t + n, sizeof t - n, "P%.0f   ", q->pstate);
-        if (q->sm >= 0) n += snprintf(t + n, sizeof t - n, "SM %.0f/%.0f MHz   ", q->sm, q->sm_max);
+        if (q->sm >= 0 && q->sm_max >= 0) n += snprintf(t + n, sizeof t - n, "SM %.0f/%.0f MHz   ", q->sm, q->sm_max);
+        else if (q->sm >= 0) n += snprintf(t + n, sizeof t - n, T("klok %.0f MHz   ", "clock %.0f MHz   "), q->sm);
+        if (q->volt > 0) n += snprintf(t + n, sizeof t - n, "%s V   ", nl("%.2f", q->volt));
         if (q->memklok >= 0) n += snprintf(t + n, sizeof t - n, "mem %.0f MHz   ", q->memklok);
         if (q->videoklok >= 0) n += snprintf(t + n, sizeof t - n, "video %.0f MHz   ", q->videoklok);
         if (q->cc[0]) n += snprintf(t + n, sizeof t - n, "CC %s", q->cc);
         tekst(ix, ry, ib, 16 * D, t, 10.5f, 0, GRIJS, LINKS, 0);
         n = 0; t[0] = 0;
+        if (q->w_chip) n += snprintf(t + n, sizeof t - n, "%s", T("Vermogen: de hele processorchip (processor + deze kaart). Intel geeft geen temperatuur.",
+                                                                  "Power: the whole processor chip (CPU + this card). Intel gives no temperature."));
         if (q->gen >= 0) n += snprintf(t + n, sizeof t - n, "PCIe gen%.0f x%.0f   ", q->gen, q->breedte);
         if (q->rx >= 0) n += snprintf(t + n, sizeof t - n, "\xE2\x86\x93 %.0f  \xE2\x86\x91 %.0f MB/s   ", q->rx / 1024, q->tx / 1024);
         if (q->util_mem >= 0) n += snprintf(t + n, sizeof t - n, T("geheugenactiviteit %.0f %%   ", "memory activity %.0f %%   "), q->util_mem);

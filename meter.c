@@ -28,7 +28,7 @@
 #define MiB 1048576.0
 
 /* ---------- kaarten (DXGI) ---------- */
-typedef struct { LUID luid; int nvidia, ingebouwd; char naam[96], driver[32]; double ded, gedeeld; } Kaart;
+typedef struct { LUID luid; int nvidia, intel, ingebouwd; char naam[96], driver[32]; double ded, gedeeld; } Kaart;
 static Kaart kaart[MAXG];
 static int nkaart;
 
@@ -49,6 +49,7 @@ static void zoek_kaarten(void)
             k.nvidia = d.VendorId == 0x10DE;
             k.ded = (double)d.DedicatedVideoMemory;
             k.gedeeld = (double)d.SharedSystemMemory;
+            k.intel = d.VendorId == 0x8086;
             k.ingebouwd = (d.VendorId == 0x8086 || d.VendorId == 0x4D4F4351) && k.ded <= 512 * MiB && k.gedeeld > k.ded;
             WideCharToMultiByte(CP_UTF8, 0, d.Description, -1, k.naam, sizeof k.naam, NULL, NULL);
             if (IDXGIAdapter1_CheckInterfaceSupport(a, &IID_IDXGIDevice, &v) == S_OK)
@@ -107,6 +108,56 @@ static double nv_getal(NvFn f, int soort)   /* soort < 0: geen extra argument */
     if (!f) return -1;
     if (soort < 0 ? f(nvdev, u, u + 1) : f(nvdev, soort, u)) return -1;
     return u[0];
+}
+
+/* ---------- Intel (IGCL: ControlLib.dll, onderdeel van het Intel-stuurprogramma) ----------
+ * Gemeten op een UHD in een laptop: de energieteller volgt de belasting van de processor (43 W rustig, 125 W met
+ * 20 draden vol). Het is dus het vermogen van de hele processorchip, niet van de kaart alleen. Intel geeft daar geen
+ * temperatuur. De opbouw van de gegevens staat in igcl_api.h van Intel; hier staan alleen de plekken die nodig zijn:
+ * een waarde is 24 bytes (ondersteund@0, soort@8, waarde@16); in de telemetrie (1024 bytes) staan tijd@8, energie@32,
+ * spanning@56 en klok@80. */
+static void *ig_dev;
+static int (*ig_tele)(void *, void *);
+static double ig_w = -1, ig_klok = -1, ig_volt = -1;
+
+static double ig_getal(const BYTE *w)
+{
+    int soort = *(const int *)(w + 8);
+    if (!w[0]) return -1;
+    return soort == 9 ? *(const double *)(w + 16) : soort == 8 ? *(const float *)(w + 16)
+         : soort == 6 || soort == 7 ? (double)*(const LONGLONG *)(w + 16) : (double)*(const int *)(w + 16);
+}
+static void igcl_start(void)
+{
+    HMODULE m = LoadLibraryExW(L"ControlLib.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    int (*init)(void *, void **), (*lijst)(void *, unsigned *, void **);
+    struct { unsigned maat; unsigned char versie; unsigned app, vlaggen, ondersteund; unsigned char uid[16]; } a = { 0 };
+    void *api = NULL, *dev[8];
+    unsigned n = 0;
+    if (!m) return;
+    init = (void *)GetProcAddress(m, "ctlInit");
+    lijst = (void *)GetProcAddress(m, "ctlEnumerateDevices");
+    ig_tele = (void *)GetProcAddress(m, "ctlPowerTelemetryGet");
+    if (!init || !lijst || !ig_tele) return;
+    a.maat = sizeof a; a.app = 0x10001; a.vlaggen = 1;      /* versie 1.1, met Level Zero (nodig voor telemetrie) */
+    if (init(&a, &api) || lijst(api, &n, NULL) || !n) return;
+    if (n > 8) n = 8;
+    if (lijst(api, &n, dev)) return;
+    ig_dev = dev[0];
+}
+static void igcl_meet(double nu_ms)    /* vier keer per seconde is genoeg; vermogen = energie per tijd */
+{
+    static BYTE t[1024];
+    static double e0 = -1, t0, ms0 = -1e9;
+    double e, ts;
+    if (!ig_dev || nu_ms - ms0 < 250) return;
+    memset(t, 0, sizeof t);
+    *(unsigned *)t = sizeof t; t[4] = 1;
+    if (ig_tele(ig_dev, t)) { ms0 = nu_ms; return; }
+    ig_volt = ig_getal(t + 56); ig_klok = ig_getal(t + 80);
+    ts = ig_getal(t + 8); e = ig_getal(t + 32);
+    if (e >= 0 && e0 >= 0 && ts > t0) ig_w = (e - e0) / (ts - t0);
+    e0 = e; t0 = ts; ms0 = nu_ms;
 }
 
 /* ---------- processen: naam, RAM, CPU, runtime, modellen (trage draad) ---------- */
@@ -427,6 +478,7 @@ static void meet(Gpu *uit, Sys *s)
     double nu_ms = ms_nu();
 
     PdhCollectQueryData(vraag);
+    igcl_meet(nu_ms);
     nrij = 0;
     memset(eu, 0, sizeof eu);
     for (it = lees(t_eng, &n), i = 0; i < n; i++) {
@@ -467,6 +519,7 @@ static void meet(Gpu *uit, Sys *s)
         q->gedeeld = ashr[g];
         q->util_nvml = q->util_mem = q->temp = q->w = q->w_max = q->pstate = q->sm = q->sm_max = q->memklok = q->videoklok = -1;
         q->rx = q->tx = q->gen = q->breedte = q->enc = q->dec = -1;
+        if (kaart[g].intel && ig_dev) { q->w = ig_w; q->w_chip = 1; q->sm = ig_klok; q->volt = ig_volt; }
         if (q->nvidia) {
             unsigned u[2] = { 0, 0 };
             ULONGLONG m[3] = { 0, 0, 0 };
@@ -645,6 +698,7 @@ int meter_start(HWND venster, UINT bericht, int interval_ms)
     InitializeCriticalSection(&bslot);
     zoek_kaarten();
     nvml_start();
+    igcl_start();
     pdh_buf = malloc(PDH_BUF);
     if (PdhOpenQueryW(NULL, 0, &vraag)) return 0;
     if (PdhAddEnglishCounterW(vraag, L"\\GPU Engine(*)\\Utilization Percentage", 0, &t_eng)) t_eng = NULL;

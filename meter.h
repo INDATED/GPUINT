@@ -15,10 +15,10 @@ typedef struct {
     double vram, gedeeld, paged, pct, e3d, ecopy, evideo, ereken, ram, cpu;
 } Proc;
 typedef struct {
-    int geldig, nvidia;
+    int geldig, nvidia, w_chip;     /* w_chip: het vermogen is van de hele processorchip, niet van de kaart alleen */
     char naam[96], driver[32], cuda[16], model[16], bus[24], cc[12];
     double vram_tot, vram_gebr, gedeeld, toegewezen, util, util_nvml, util_mem, temp, w, w_max, pstate, sm, sm_max,
-           memklok, videoklok, rx, tx, gen, breedte, enc, dec;
+           memklok, videoklok, rx, tx, gen, breedte, enc, dec, volt;
     char snaam[NSOORT][16];
     double svram[NSOORT];
     int ns, np;
