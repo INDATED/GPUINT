@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GPUINT voor Android: een NativeActivity zonder Java (hasCode="false"). Alle code staat in gpuint.c.
+     Geen rechten nodig: de app leest alleen bestanden van de kernel die elke app mag lezen. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="nl.gpuint.app">
+    <application
+        android:label="GPUINT"
+        android:icon="@mipmap/ic_launcher"
+        android:hasCode="false"
+        android:allowBackup="false"
+        android:extractNativeLibs="true"
+        android:theme="@android:style/Theme.Black.NoTitleBar">
+        <activity
+            android:name="android.app.NativeActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|keyboard|keyboardHidden|navigation|uiMode|locale|layoutDirection">
+            <meta-data android:name="android.app.lib_name" android:value="gpuint" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

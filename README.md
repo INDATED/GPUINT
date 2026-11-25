@@ -29,10 +29,21 @@ A live GPU task manager for Windows, written in C. Black, fast, and in two langu
 - Windows 10 or 11, 64-bit.
 - Any graphics card with a current WDDM driver. Temperature, power and clocks are shown for NVIDIA cards.
 
+## Android
+
+The folder `android` has GPUINT for Android: the same style, also in C, as a NativeActivity without Java.
+
+- It shows the graphics card (load, temperature, clock, video memory, throttling), a history graph, the processor (load and clock per core), RAM, swap and temperatures.
+- It needs no permissions. It reads kernel files that every app may read. Measured on a Galaxy S26 Ultra (Adreno 840).
+- There is no process list. Android does not let an app see which other apps use the graphics card.
+- The load of the card gets one new value per second. That is the rate of the kernel.
+- Text is drawn with [stb_truetype](https://github.com/nothings/stb) by Sean Barrett (public domain / MIT), file `android/stb_truetype.h`.
+
 ## Build
 
 - Install [MSYS2](https://www.msys2.org/) with the UCRT64 toolchain (`gcc`, `windres`) in `C:\msys64`.
-- Run `bouw.bat`. It makes `GPUINT.exe` and `meter_proef.exe` (prints one sample as text).
+- Run `bouw.bat`. It makes `GPUINT.exe` and `meter_proef.exe` (prints one sample as text). It also makes the icons for Android.
+- Android: install the Android SDK with NDK 25.1.8937393, build-tools 34.0.0 and platform android-34, and Java. Then run `android\bouw.bat`. It makes `android\uit\GPUINT.apk`, signed with the Android debug key.
 
 The source code has Dutch names and comments.
 

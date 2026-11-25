@@ -7,3 +7,6 @@ oc*
 logo-voorbeeld.png
 schermafdruk.png
 bouw_oc.bat
+# Android: gebouwd en gemaakt door bouw.bat
+android/uit/
+android/res/
