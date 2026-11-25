@@ -1,0 +1,8 @@
+# gebouwde bestanden
+*.exe
+*.o
+*.ico
+# proeven en losse beelden
+oc*
+logo-voorbeeld.png
+schermafdruk.png
