@@ -1,6 +1,6 @@
 # GPUINT
 
-A live GPU task manager for Windows, written in C. Black, fast, and in two languages (English and Dutch).
+A live GPU task manager for Windows, written in C. in two languages (English and Dutch).
 
 ## What it shows
 
