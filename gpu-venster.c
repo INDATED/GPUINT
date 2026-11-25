@@ -309,12 +309,13 @@ static const char *soort_naam(const char *s)
 /* Waarvoor een proces van deze soort zijn videogeheugen gebruikt. Eigen teksten, met de gewone technische namen. */
 static const char *soort_uitleg(const char *s)
 {
-    if (!strcmp(s, "browser")) return T("paginategels, videobeelden, canvas en WebGL/WebGPU", "raster tiles, video frames, canvas and WebGL/WebGPU surfaces");
-    if (!strcmp(s, "compositor")) return T("venstervlakken en de swap chain van het bureaublad", "window surfaces and the desktop swap chain");
-    if (!strcmp(s, "kernel")) return T("geheugen van stuurprogramma en kernel", "driver and kernel allocations");
-    if (!strcmp(s, "video")) return T("videovlakken (decoderen en coderen)", "video decode and encode surfaces");
-    if (!strcmp(s, "3D/game")) return T("texturen, vertexbuffers, render targets", "textures, vertex buffers, render targets");
-    if (!strcmp(s, "compute")) return T("rekenbuffers (CUDA/compute)", "compute buffers (CUDA)");
+    /* kort houden: de tekst moet achter de naam passen */
+    if (!strcmp(s, "browser")) return T("tegels, video, WebGL", "tiles, video, WebGL");
+    if (!strcmp(s, "compositor")) return T("vensters, swap chain", "windows, swap chain");
+    if (!strcmp(s, "kernel")) return T("stuurprogramma", "driver");
+    if (!strcmp(s, "video")) return T("videovlakken", "video surfaces");
+    if (!strcmp(s, "3D/game")) return T("texturen, render targets", "textures, render targets");
+    if (!strcmp(s, "compute")) return T("rekenbuffers", "compute buffers");
     return "";
 }
 
